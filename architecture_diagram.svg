@@ -1,0 +1,140 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="frontendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="backendGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#dc2626;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#ef4444;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="ragGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="dbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#059669;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#10b981;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="vectorGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ea580c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f97316;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="aiGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0891b2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="3" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto" fill="#4b5563">
+      <polygon points="0 0, 10 3.5, 0 7" />
+    </marker>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="500" fill="#f8fafc"/>
+  
+  <!-- Title -->
+  <text x="400" y="30" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1e293b" text-anchor="middle">Medical RAG Agent Architecture</text>
+  
+  <!-- User Layer -->
+  <rect x="50" y="70" width="120" height="80" rx="12" fill="url(#frontendGradient)" filter="url(#shadow)"/>
+  <text x="110" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">Next.js</text>
+  <text x="110" y="115" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Frontend</text>
+  <text x="110" y="135" font-family="Arial, sans-serif" font-size="10" fill="#bfdbfe" text-anchor="middle">Chat Interface</text>
+  
+  <!-- API Layer -->
+  <rect x="220" y="70" width="120" height="80" rx="12" fill="url(#backendGradient)" filter="url(#shadow)"/>
+  <text x="280" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">FastAPI</text>
+  <text x="280" y="115" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Backend</text>
+  <text x="280" y="135" font-family="Arial, sans-serif" font-size="10" fill="#fecaca" text-anchor="middle">REST API</text>
+  
+  <!-- RAG Pipeline -->
+  <rect x="390" y="70" width="120" height="80" rx="12" fill="url(#ragGradient)" filter="url(#shadow)"/>
+  <text x="450" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white" text-anchor="middle">RAG</text>
+  <text x="450" y="115" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Pipeline</text>
+  <text x="450" y="135" font-family="Arial, sans-serif" font-size="10" fill="#ddd6fe" text-anchor="middle">Query Routing</text>
+  
+  <!-- Data Layer Container -->
+  <rect x="50" y="200" width="700" height="250" rx="15" fill="#ffffff" stroke="#e2e8f0" stroke-width="2" filter="url(#shadow)"/>
+  
+  <!-- PostgreSQL Database -->
+  <rect x="80" y="230" width="200" height="180" rx="12" fill="url(#dbGradient)" filter="url(#shadow)"/>
+  <text x="180" y="255" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">PostgreSQL</text>
+  <text x="180" y="275" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">+ pgvector</text>
+  
+  <!-- Database Tables -->
+  <rect x="100" y="290" width="70" height="25" rx="4" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)"/>
+  <text x="135" y="305" font-family="Arial, sans-serif" font-size="9" fill="white" text-anchor="middle">drug_relations</text>
+  
+  <rect x="180" y="290" width="70" height="25" rx="4" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)"/>
+  <text x="215" y="305" font-family="Arial, sans-serif" font-size="9" fill="white" text-anchor="middle">drug_dosage</text>
+  
+  <rect x="100" y="320" width="70" height="25" rx="4" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)"/>
+  <text x="135" y="335" font-family="Arial, sans-serif" font-size="9" fill="white" text-anchor="middle">drug_metadata</text>
+  
+  <rect x="180" y="320" width="70" height="25" rx="4" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)"/>
+  <text x="215" y="335" font-family="Arial, sans-serif" font-size="9" fill="white" text-anchor="middle">food_interactions</text>
+  
+  <rect x="140" y="350" width="80" height="25" rx="4" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)"/>
+  <text x="180" y="365" font-family="Arial, sans-serif" font-size="9" fill="white" text-anchor="middle">product_stages</text>
+  
+  <!-- Record count -->
+  <text x="180" y="390" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">1.7M+ Records</text>
+  
+  <!-- Vector Embeddings -->
+  <rect x="320" y="230" width="180" height="180" rx="12" fill="url(#vectorGradient)" filter="url(#shadow)"/>
+  <text x="410" y="255" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">Vector</text>
+  <text x="410" y="275" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">Embeddings</text>
+  
+  <!-- Vector visualization -->
+  <circle cx="370" cy="320" r="15" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)"/>
+  <circle cx="410" cy="310" r="15" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)"/>
+  <circle cx="450" cy="325" r="15" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)"/>
+  <circle cx="390" cy="350" r="15" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)"/>
+  <circle cx="430" cy="355" r="15" fill="rgba(255,255,255,0.3)" stroke="rgba(255,255,255,0.6)"/>
+  
+  <text x="410" y="380" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">512D Vectors</text>
+  <text x="410" y="395" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white" text-anchor="middle">1.7M+ Embeddings</text>
+  
+  <!-- AI Agent -->
+  <rect x="540" y="230" width="180" height="180" rx="12" fill="url(#aiGradient)" filter="url(#shadow)"/>
+  <text x="630" y="255" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">AI Agent</text>
+  <text x="630" y="275" font-family="Arial, sans-serif" font-size="12" fill="white" text-anchor="middle">OpenAI</text>
+  
+  <!-- AI Components -->
+  <rect x="560" y="290" width="140" height="30" rx="6" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)"/>
+  <text x="630" y="305" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">GPT-4O-mini</text>
+  <text x="630" y="315" font-family="Arial, sans-serif" font-size="9" fill="#a5f3fc" text-anchor="middle">Query Classification</text>
+  
+  <rect x="560" y="330" width="140" height="30" rx="6" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.4)"/>
+  <text x="630" y="345" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">text-embedding-3-small</text>
+  <text x="630" y="355" font-family="Arial, sans-serif" font-size="9" fill="#a5f3fc" text-anchor="middle">Vector Generation</text>
+  
+  <text x="630" y="385" font-family="Arial, sans-serif" font-size="10" fill="white" text-anchor="middle">Response Generation</text>
+  <text x="630" y="400" font-family="Arial, sans-serif" font-size="9" fill="#a5f3fc" text-anchor="middle">Content Prioritization</text>
+  
+  <!-- Flow Arrows -->
+  <line x1="170" y1="110" x2="220" y2="110" stroke="#4b5563" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <line x1="340" y1="110" x2="390" y2="110" stroke="#4b5563" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- RAG to Data Layer -->
+  <line x1="450" y1="150" x2="450" y2="200" stroke="#4b5563" stroke-width="3" marker-end="url(#arrowhead)"/>
+  
+  <!-- Data interconnections -->
+  <line x1="280" y1="320" x2="320" y2="320" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+  <line x1="500" y1="320" x2="540" y2="320" stroke="#6b7280" stroke-width="2" marker-end="url(#arrowhead)"/>
+  
+  <!-- Data flow labels -->
+  <text x="195" y="105" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">HTTP</text>
+  <text x="365" y="105" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">API</text>
+  <text x="460" y="185" font-family="Arial, sans-serif" font-size="9" fill="#6b7280" text-anchor="middle">Query</text>
+  <text x="300" y="315" font-family="Arial, sans-serif" font-size="8" fill="#6b7280" text-anchor="middle">Embed</text>
+  <text x="520" y="315" font-family="Arial, sans-serif" font-size="8" fill="#6b7280" text-anchor="middle">Classify</text>
+  
+  <!-- Performance indicators -->
+  <rect x="580" y="20" width="180" height="40" rx="8" fill="rgba(34,197,94,0.1)" stroke="rgba(34,197,94,0.3)"/>
+  <text x="670" y="35" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#15803d" text-anchor="middle">⚡ Performance</text>
+  <text x="670" y="50" font-family="Arial, sans-serif" font-size="9" fill="#15803d" text-anchor="middle">&lt;2s search • 1.7M records • $1.76 cost</text>
+</svg>

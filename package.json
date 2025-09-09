@@ -1,0 +1,40 @@
+{
+  "name": "app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\" --names \"backend,frontend\" --prefix-colors \"cyan,green\" --kill-others",
+    "frontend": "wait-on http://localhost:8000/health && next dev --turbopack",
+    "backend": "uv run python start_backend.py",
+    "dev:frontend-only": "next dev --turbopack",
+    "dev:backend-only": "node scripts/start-backend.js",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint",
+    "backend:python": "python start_backend.py",
+    "pg:setup": "uv run scripts/pg.py setup",
+    "pg:stats": "uv run scripts/pg.py stats",
+    "pg:clear": "uv run scripts/pg.py clear --all --force",
+    "pg:add": "uv run scripts/pg.py add --all",
+    "pg:embeddings": "uv run scripts/pg.py embeddings",
+    "pg:validate": "uv run scripts/pg.py validate"
+  },
+  "dependencies": {
+    "next": "15.5.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "concurrently": "^8.2.2",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.2",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "wait-on": "^7.2.0"
+  }
+}

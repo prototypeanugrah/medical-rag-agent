@@ -234,7 +234,7 @@ npm run pg:setup
 npm run data:info
 npm run data:open
 
-# Google Drive folder: https://drive.google.com/drive/folders/17xzfvf0njVT7k9TDF6m2mCtDM4vMmV4F?usp=sharing
+# [Google Drive Link](https://drive.google.com/drive/folders/17xzfvf0njVT7k9TDF6m2mCtDM4vMmV4F?usp=sharing)
 # Download all files (~240MB total) to the project root directory
 ```
 

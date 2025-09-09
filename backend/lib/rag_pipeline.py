@@ -2,7 +2,6 @@
 RAG (Retrieval Augmented Generation) pipeline for medical queries
 """
 
-import re
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
@@ -76,20 +75,34 @@ class RAGPipeline:
         self.knowledge_graph_service = KnowledgeGraphService(db)
         self.ai_classifier = AIQueryClassifier()
 
-    async def analyze_query(self, query: str, routing_info: Dict[str, Any]) -> QueryAnalysis:
+    async def analyze_query(
+        self, query: str, routing_info: Dict[str, Any]
+    ) -> QueryAnalysis:
         """Create QueryAnalysis from AI classifier results (deprecated fallback analysis)"""
-        
+
         # Use AI classifier results as primary source
         extracted_drugs = routing_info.get("extracted_drugs", [])
         query_intent = routing_info.get("intent", "general_medical")
         confidence = routing_info.get("confidence", 0.5)
-        
+
         # Legacy symptom extraction (kept for backward compatibility)
         query_lower = query.lower()
         symptom_keywords = [
-            "pain", "headache", "fever", "nausea", "hypertension", "diabetes",
-            "depression", "anxiety", "infection", "inflammation", "allergy",
-            "high blood pressure", "disorder", "syndrome", "disease"
+            "pain",
+            "headache",
+            "fever",
+            "nausea",
+            "hypertension",
+            "diabetes",
+            "depression",
+            "anxiety",
+            "infection",
+            "inflammation",
+            "allergy",
+            "high blood pressure",
+            "disorder",
+            "syndrome",
+            "disease",
         ]
         extracted_symptoms = [
             symptom for symptom in symptom_keywords if symptom in query_lower
@@ -102,15 +115,14 @@ class RAGPipeline:
             confidence=confidence,
         )
 
-
     async def retrieve_relevant_context(self, rag_query: RAGQuery) -> RetrievalContext:
         """Retrieve relevant context using AI-powered query routing"""
-        
-        # Get AI classifier routing info first  
+
+        # Get AI classifier routing info first
         routing_info = self.ai_classifier.route_query(
             rag_query.query, drugs=rag_query.drugs + rag_query.current_medications
         )
-        
+
         # Create analysis from AI classifier results
         analysis = await self.analyze_query(rag_query.query, routing_info)
 
@@ -243,7 +255,6 @@ class RAGPipeline:
             if context.routing_info.get("recommended_sources"):
                 formatted_context += f"- Data Sources Used: {', '.join(context.routing_info['recommended_sources'])}\n"
             formatted_context += f"- AI Reasoning: {'; '.join(context.routing_info.get('reasoning', []))}\n\n"
-
 
         # Add vector search results
         if context.vector_results:

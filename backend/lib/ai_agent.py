@@ -135,14 +135,14 @@ TONE: Professional, clear, empowering. Help users understand their medications t
 
         user_prompt = f"""User Query: "{query}"
 
-AI Classification: {context.routing_info.get('intent', 'unknown')}
+AI Classification: {context.routing_info.get("intent", "unknown")}
 
-Conversation Context: {conversation_context.get('summary', 'No prior conversation') if conversation_context else 'No prior conversation'}
+Conversation Context: {conversation_context.get("summary", "No prior conversation") if conversation_context else "No prior conversation"}
 
 Context Information:
 {self.rag_pipeline.format_context_for_llm(context)}
 
-IMPORTANT: If the user refers to "this drug", "the medication", "it", or similar pronouns without naming a specific drug, use the drugs from the conversation context above. The drugs identified from conversation history are: {', '.join(context.routing_info.get('extracted_drugs', [])) or 'None identified'}.
+IMPORTANT: If the user refers to "this drug", "the medication", "it", or similar pronouns without naming a specific drug, use the drugs from the conversation context above. The drugs identified from conversation history are: {", ".join(context.routing_info.get("extracted_drugs", [])) or "None identified"}.
 
 Based on the AI classification, provide the appropriate response:
 - FOOD_INTERACTIONS: Provide ONLY food interaction advice from food_interactions table
@@ -165,18 +165,20 @@ Remember: Match your response precisely to the detected query intent and use con
         try:
             # Check if we have enough information to provide a meaningful response
             has_data = (
-                len(context.vector_results) > 0 or 
-                len(context.graph_results.get("drugInfo", [])) > 0 or
-                len(context.graph_results.get("warnings", [])) > 0 or
-                len(context.graph_results.get("drugInteractions", [])) > 0 or
-                len(context.graph_results.get("foodInteractions", [])) > 0 or
-                len(context.graph_results.get("dosageInfo", [])) > 0 or
-                len(context.graph_results.get("productStages", [])) > 0
+                len(context.vector_results) > 0
+                or len(context.graph_results.get("drugInfo", [])) > 0
+                or len(context.graph_results.get("warnings", [])) > 0
+                or len(context.graph_results.get("drugInteractions", [])) > 0
+                or len(context.graph_results.get("foodInteractions", [])) > 0
+                or len(context.graph_results.get("dosageInfo", [])) > 0
+                or len(context.graph_results.get("productStages", [])) > 0
             )
-            
+
             if not has_data:
                 # Generate response for missing information
-                content = self._generate_no_data_response(query, context.routing_info.get("extracted_drugs", []))
+                content = self._generate_no_data_response(
+                    query, context.routing_info.get("extracted_drugs", [])
+                )
             else:
                 # Generate normal response
                 completion = self.openai_client.chat.completions.create(
@@ -206,7 +208,7 @@ Remember: Match your response precisely to the detected query intent and use con
 
         except Exception as e:
             raise AIServiceError(f"Failed to generate response: {str(e)}", e)
-    
+
     def _generate_no_data_response(self, query: str, extracted_drugs: List[str]) -> str:
         """Generate response when no data is available in the database"""
         if extracted_drugs:
@@ -243,40 +245,38 @@ Remember: Match your response precisely to the detected query intent and use con
 
 <p><em>For comprehensive medical advice, always consult with qualified healthcare professionals.</em></p>"""
 
-
     def _extract_reasoning(self, context: RetrievalContext) -> List[str]:
         """Extract reasoning steps"""
         reasoning = []
 
-        reasoning.append(f"AI classified query as: {context.routing_info.get('intent', 'unknown')}")
+        reasoning.append(
+            f"AI classified query as: {context.routing_info.get('intent', 'unknown')}"
+        )
 
         extracted_drugs = context.routing_info.get("extracted_drugs", [])
         if extracted_drugs:
-            reasoning.append(
-                f"AI identified drugs: {', '.join(extracted_drugs)}"
-            )
+            reasoning.append(f"AI identified drugs: {', '.join(extracted_drugs)}")
 
         if context.vector_results:
             reasoning.append(
                 f"Found {len(context.vector_results)} relevant documents via semantic search"
             )
 
-
         return reasoning
 
     def _extract_sources(self, context: RetrievalContext) -> List[str]:
         """Extract specific database table sources from context"""
         sources = set()
-        
+
         # Map content types to specific database tables
         table_mapping = {
             "drug_relations": "Drug interactions and mechanisms",
-            "food_interactions": "Food-drug interactions", 
+            "food_interactions": "Food-drug interactions",
             "drug_metadata": "Basic drug information",
             "drug_dosage": "Dosage forms and formulations",
             "drug_product_stages": "Market availability status",
             "product_stage_descriptions": "Product stage definitions",
-            "vector_embeddings": "Semantic search results"
+            "vector_embeddings": "Semantic search results",
         }
 
         # Extract from vector results
@@ -301,19 +301,21 @@ Remember: Match your response precisely to the detected query intent and use con
 
         # Extract from graph results based on AI classification intent
         detected_intent = context.routing_info.get("intent", "unknown")
-        
+
         # Only add sources that match the detected intent
         if context.graph_results.get("drugInteractions"):
             sources.add("drug_relations")
-        
-        # Only show food_interactions if the user specifically asked about food interactions    
-        if (context.graph_results.get("foodInteractions") and 
-            detected_intent in ["food_interactions", "multi_aspect"]):
+
+        # Only show food_interactions if the user specifically asked about food interactions
+        if context.graph_results.get("foodInteractions") and detected_intent in [
+            "food_interactions",
+            "multi_aspect",
+        ]:
             sources.add("food_interactions")
-            
+
         if context.graph_results.get("dosageInfo"):
             sources.add("drug_dosage")
-            
+
         if context.graph_results.get("productStages"):
             sources.add("drug_product_stages")
 
@@ -329,13 +331,13 @@ Remember: Match your response precisely to the detected query intent and use con
 
     def _calculate_confidence(self, context: RetrievalContext) -> float:
         """Calculate confidence score based on AI classifier and data quality"""
-        
+
         # Use AI classifier's confidence as the primary confidence score
-        ai_confidence = context.routing_info.get('confidence', 0.5)
-        
+        ai_confidence = context.routing_info.get("confidence", 0.5)
+
         # Start with AI classifier confidence (this is usually much more accurate)
         confidence = ai_confidence
-        
+
         # Add small boost based on vector search data quality if available
         if context.vector_results:
             avg_similarity = sum(r["similarity"] for r in context.vector_results) / len(
@@ -343,7 +345,7 @@ Remember: Match your response precisely to the detected query intent and use con
             )
             # Smaller boost since AI confidence is already quite good
             confidence = min(1.0, confidence + (avg_similarity * 0.1))
-        
+
         return round(confidence, 2)
 
     def _generate_follow_up_questions(self, context: RetrievalContext) -> List[str]:
@@ -357,12 +359,13 @@ Remember: Match your response precisely to the detected query intent and use con
 
         # Only suggest food interaction follow-up if user asked about food interactions
         detected_intent = context.routing_info.get("intent", "unknown")
-        if (context.graph_results.get("foodInteractions") and 
-            detected_intent in ["food_interactions", "multi_aspect"]):
+        if context.graph_results.get("foodInteractions") and detected_intent in [
+            "food_interactions",
+            "multi_aspect",
+        ]:
             questions.append(
                 "Would you like to know more about specific foods to avoid?"
             )
-
 
         return questions
 
@@ -461,15 +464,33 @@ Remember: Match your response precisely to the detected query intent and use con
                     if msg.content:
                         # Look for drug names in <strong> tags
                         import re
-                        strong_matches = re.findall(r'<strong>([^<]+)</strong>', msg.content, re.IGNORECASE)
+
+                        strong_matches = re.findall(
+                            r"<strong>([^<]+)</strong>", msg.content, re.IGNORECASE
+                        )
                         for match in strong_matches:
                             # Check if it looks like a drug name (4+ chars, not common words)
                             match_clean = match.strip().lower()
-                            if (len(match_clean) >= 4 and 
-                                match_clean not in {"kidney", "chronic", "disease", "failure", "stage", "blood", "pressure", "disorders", "anxiety", "epilepsy"} and
-                                not match_clean in {"what", "this", "means", "recommendations"}):
+                            if (
+                                len(match_clean) >= 4
+                                and match_clean
+                                not in {
+                                    "kidney",
+                                    "chronic",
+                                    "disease",
+                                    "failure",
+                                    "stage",
+                                    "blood",
+                                    "pressure",
+                                    "disorders",
+                                    "anxiety",
+                                    "epilepsy",
+                                }
+                                and match_clean
+                                not in {"what", "this", "means", "recommendations"}
+                            ):
                                 mentioned_drugs.add(match_clean)
-                    
+
                     # Extract metadata if available
                     if msg.meta_data:
                         try:
@@ -515,7 +536,6 @@ Remember: Match your response precisely to the detected query intent and use con
         ]
 
         drugs = set()
-        text_lower = text.lower()
 
         # Skip common non-drug words
         common_words = {

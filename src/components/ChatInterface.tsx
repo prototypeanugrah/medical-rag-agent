@@ -9,11 +9,6 @@ import ThemeToggle from '@/components/ThemeToggle';
 interface AgentResponse {
   content: string;
   reasoning: string[];
-  warnings: Array<{
-    type: string;
-    severity: 'low' | 'medium' | 'high';
-    message: string;
-  }>;
   sources: string[];
   confidence: number;
   followUpQuestions?: string[];
@@ -195,39 +190,15 @@ const MessageBubble = ({ message, onFollowUpClick }: { message: ChatMessage; onF
               : 'bg-white border border-gray-200'
           }`}>
             
-            {/* Warnings Section */}
-            {message.metadata?.warnings && message.metadata.warnings.length > 0 && (
-              <div className="mb-6 space-y-3">
-                {message.metadata.warnings.map((warning: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className={`p-4 rounded-xl border-l-4 ${
-                      warning.severity === 'high' 
-                        ? 'bg-red-50 border-red-400 text-red-800'
-                        : warning.severity === 'medium'
-                        ? 'bg-amber-50 border-amber-400 text-amber-800'
-                        : 'bg-blue-50 border-blue-400 text-blue-800'
-                    }`}
-                  >
-                    <div className="flex items-center mb-2">
-                      <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                      </svg>
-                      <span className="font-semibold text-sm uppercase tracking-wide">{warning.type} - {warning.severity}</span>
-                    </div>
-                    <p className="text-sm leading-relaxed">{warning.message}</p>
-                  </div>
-                ))}
-              </div>
-            )}
 
             {/* Main Content */}
             <div className="prose prose-gray max-w-none">
-              <div className={`leading-relaxed whitespace-pre-wrap text-base ${
-                isDark ? 'text-gray-200' : 'text-gray-800'
-              }`}>
-                {message.content}
-              </div>
+              <div 
+                className={`leading-relaxed text-base medical-content ${
+                  isDark ? 'text-gray-200' : 'text-gray-800'
+                }`}
+                dangerouslySetInnerHTML={{ __html: message.content }}
+              />
             </div>
 
             {/* Metadata Section */}
@@ -412,7 +383,6 @@ export default function ChatInterface({ sessionId: initialSessionId }: ChatInter
           content: agentResponse.content,
           metadata: {
             reasoning: agentResponse.reasoning,
-            warnings: agentResponse.warnings,
             sources: agentResponse.sources,
             confidence: agentResponse.confidence,
             followUpQuestions: agentResponse.followUpQuestions,

@@ -21,14 +21,12 @@ class AgentResponse:
         self,
         content: str,
         reasoning: List[str],
-        warnings: List[Dict[str, Any]],
         sources: List[str],
         confidence: float,
         follow_up_questions: Optional[List[str]] = None,
     ):
         self.content = content
         self.reasoning = reasoning
-        self.warnings = warnings
         self.sources = sources
         self.confidence = confidence
         self.follow_up_questions = follow_up_questions or []
@@ -38,7 +36,6 @@ class AgentResponse:
         return {
             "content": self.content,
             "reasoning": self.reasoning,
-            "warnings": self.warnings,
             "sources": self.sources,
             "confidence": self.confidence,
             "followUpQuestions": self.follow_up_questions,
@@ -103,25 +100,27 @@ CRITICAL: Format your response as clean HTML. Use these HTML elements ONLY:
 - <ul><li>text</li></ul> for bullet lists
 - <em>text</em> for emphasis
 - NO markdown symbols (no #, **, -, etc.)
-- NO "Direct Answer:", "Comprehensive Context:" headers
-- Structure content naturally with HTML
+- NO warning blocks, alert boxes, or disruptive formatting
+- Structure content naturally as flowing paragraphs and lists
 
 RESPONSE LOGIC:
-- If user asks a specific question (like "does X interact with Y"), provide ONLY that specific information
+- If user asks about FOOD INTERACTIONS specifically, provide ONLY food-related advice
+- If user asks about DRUG INTERACTIONS specifically, provide ONLY drug interaction information  
+- If user asks about CONTRAINDICATIONS specifically, provide ONLY contraindication information
 - If user asks broadly (like "tell me about X"), provide comprehensive information
 - Always include specific database table sources in parentheses
 
-SPECIFIC QUESTION RESPONSES (concise):
-- Give direct answer in 2-3 sentences
-- Include mechanism if relevant
-- Cite specific tables: (drug_relations), (food_interactions), (drug_dosage), etc.
-- End with brief safety note
+FORMATTING RULES:
+- NO separate warning blocks or alert sections
+- Integrate safety information naturally into paragraphs
+- Use <strong> for drug names and important terms
+- Keep formatting clean and readable, not disruptive
 
-COMPREHENSIVE QUESTION RESPONSES (detailed):
-- Start with direct answer
-- Add context from multiple database tables
-- Include related information they should know
-- Provide decision support
+QUERY-SPECIFIC RESPONSES:
+- Food interaction queries: Focus only on food-drug interactions from food_interactions table
+- Drug interaction queries: Focus only on drug-drug interactions from drug_relations table
+- Contraindication queries: Focus only on medical contraindications from drug_relations table
+- General queries: Provide comprehensive information from all relevant tables
 
 SOURCE TRANSPARENCY:
 Always specify which database table information comes from:
@@ -136,21 +135,32 @@ TONE: Professional, clear, empowering. Help users understand their medications t
 
         user_prompt = f"""User Query: "{query}"
 
+AI Classification: {context.routing_info.get('intent', 'unknown')}
+
+Conversation Context: {conversation_context.get('summary', 'No prior conversation') if conversation_context else 'No prior conversation'}
+
 Context Information:
 {self.rag_pipeline.format_context_for_llm(context)}
 
-Analyze the query type:
-- SPECIFIC QUESTION (e.g., "does X interact with Y"): Provide concise, focused response
-- COMPREHENSIVE QUESTION (e.g., "tell me about X"): Provide detailed information
+IMPORTANT: If the user refers to "this drug", "the medication", "it", or similar pronouns without naming a specific drug, use the drugs from the conversation context above. The drugs identified from conversation history are: {', '.join(context.routing_info.get('extracted_drugs', [])) or 'None identified'}.
+
+Based on the AI classification, provide the appropriate response:
+- FOOD_INTERACTIONS: Provide ONLY food interaction advice from food_interactions table
+- DRUG_INTERACTIONS: Provide ONLY drug-drug interaction information from drug_relations table  
+- CONTRAINDICATIONS: Provide ONLY contraindication information from drug_relations table
+- MULTI_ASPECT: Provide comprehensive information from all relevant tables
+- Other intents: Focus on the specific type of information requested
 
 Response requirements:
 1. Format as clean HTML (use <p>, <strong>, <ul><li>, <em> tags only)
-2. Cite specific database tables in parentheses for each fact
-3. If information is limited or missing, clearly state what's not available
-4. For specific questions: 2-3 paragraphs max, direct answer only
-5. For comprehensive questions: include related context and decision support
+2. NO warning blocks or disruptive alert formatting
+3. Cite specific database tables in parentheses for each fact
+4. If asking about food interactions, do NOT include contraindications
+5. If asking about contraindications, do NOT include food interactions
+6. Integrate safety information naturally into flowing paragraphs
+7. If the user uses pronouns referring to drugs, clearly state which drug you're discussing
 
-Remember: Always specify the exact database table source for transparency."""
+Remember: Match your response precisely to the detected query intent and use conversation context for drug identification."""
 
         try:
             # Check if we have enough information to provide a meaningful response
@@ -159,12 +169,14 @@ Remember: Always specify the exact database table source for transparency."""
                 len(context.graph_results.get("drugInfo", [])) > 0 or
                 len(context.graph_results.get("warnings", [])) > 0 or
                 len(context.graph_results.get("drugInteractions", [])) > 0 or
-                len(context.graph_results.get("foodInteractions", [])) > 0
+                len(context.graph_results.get("foodInteractions", [])) > 0 or
+                len(context.graph_results.get("dosageInfo", [])) > 0 or
+                len(context.graph_results.get("productStages", [])) > 0
             )
             
             if not has_data:
                 # Generate response for missing information
-                content = self._generate_no_data_response(query, context.query_analysis.extracted_drugs)
+                content = self._generate_no_data_response(query, context.routing_info.get("extracted_drugs", []))
             else:
                 # Generate normal response
                 completion = self.openai_client.chat.completions.create(
@@ -179,7 +191,6 @@ Remember: Always specify the exact database table source for transparency."""
                 content = completion.choices[0].message.content or ""
 
             # Extract additional information
-            warnings = self._extract_warnings(context)
             reasoning = self._extract_reasoning(context)
             sources = self._extract_sources(context)
             confidence = self._calculate_confidence(context)
@@ -188,7 +199,6 @@ Remember: Always specify the exact database table source for transparency."""
             return AgentResponse(
                 content=content,
                 reasoning=reasoning,
-                warnings=warnings,
                 sources=sources,
                 confidence=confidence,
                 follow_up_questions=follow_up_questions,
@@ -233,43 +243,17 @@ Remember: Always specify the exact database table source for transparency."""
 
 <p><em>For comprehensive medical advice, always consult with qualified healthcare professionals.</em></p>"""
 
-    def _extract_warnings(self, context: RetrievalContext) -> List[Dict[str, Any]]:
-        """Extract warnings from context"""
-        warnings = []
-
-        # Extract from knowledge graph warnings
-        for warning in context.graph_results.get("warnings", []):
-            warnings.append(
-                {
-                    "type": warning["type"],
-                    "severity": warning["severity"],
-                    "message": warning["description"],
-                }
-            )
-
-        # Extract critical terms from vector results
-        for result in context.vector_results:
-            content = result["content"].lower()
-            if any(term in content for term in ["contraindicated", "avoid"]):
-                warnings.append(
-                    {
-                        "type": "contraindication",
-                        "severity": "high",
-                        "message": f"Critical interaction found: {result['content'][:200]}...",
-                    }
-                )
-
-        return warnings
 
     def _extract_reasoning(self, context: RetrievalContext) -> List[str]:
         """Extract reasoning steps"""
         reasoning = []
 
-        reasoning.append(f"Query analyzed as: {context.query_analysis.query_type}")
+        reasoning.append(f"AI classified query as: {context.routing_info.get('intent', 'unknown')}")
 
-        if context.query_analysis.extracted_drugs:
+        extracted_drugs = context.routing_info.get("extracted_drugs", [])
+        if extracted_drugs:
             reasoning.append(
-                f"Identified drugs: {', '.join(context.query_analysis.extracted_drugs)}"
+                f"AI identified drugs: {', '.join(extracted_drugs)}"
             )
 
         if context.vector_results:
@@ -277,11 +261,6 @@ Remember: Always specify the exact database table source for transparency."""
                 f"Found {len(context.vector_results)} relevant documents via semantic search"
             )
 
-        warnings_count = len(context.graph_results.get("warnings", []))
-        if warnings_count > 0:
-            reasoning.append(
-                f"Identified {warnings_count} safety warnings from knowledge graph"
-            )
 
         return reasoning
 
@@ -320,11 +299,16 @@ Remember: Always specify the exact database table source for transparency."""
             else:
                 sources.add("drug_metadata")  # Default for drug info
 
-        # Extract from warnings and interactions
+        # Extract from graph results based on AI classification intent
+        detected_intent = context.routing_info.get("intent", "unknown")
+        
+        # Only add sources that match the detected intent
         if context.graph_results.get("drugInteractions"):
             sources.add("drug_relations")
-            
-        if context.graph_results.get("foodInteractions"):
+        
+        # Only show food_interactions if the user specifically asked about food interactions    
+        if (context.graph_results.get("foodInteractions") and 
+            detected_intent in ["food_interactions", "multi_aspect"]):
             sources.add("food_interactions")
             
         if context.graph_results.get("dosageInfo"):
@@ -344,43 +328,41 @@ Remember: Always specify the exact database table source for transparency."""
         return sorted(descriptive_sources)
 
     def _calculate_confidence(self, context: RetrievalContext) -> float:
-        """Calculate confidence score"""
-        confidence = context.query_analysis.confidence
-
-        # Boost confidence based on available data
+        """Calculate confidence score based on AI classifier and data quality"""
+        
+        # Use AI classifier's confidence as the primary confidence score
+        ai_confidence = context.routing_info.get('confidence', 0.5)
+        
+        # Start with AI classifier confidence (this is usually much more accurate)
+        confidence = ai_confidence
+        
+        # Add small boost based on vector search data quality if available
         if context.vector_results:
             avg_similarity = sum(r["similarity"] for r in context.vector_results) / len(
                 context.vector_results
             )
-            confidence = min(1.0, confidence + (avg_similarity * 0.3))
-
-        if context.graph_results.get("warnings"):
-            confidence = min(1.0, confidence + 0.2)
-
+            # Smaller boost since AI confidence is already quite good
+            confidence = min(1.0, confidence + (avg_similarity * 0.1))
+        
         return round(confidence, 2)
 
     def _generate_follow_up_questions(self, context: RetrievalContext) -> List[str]:
         """Generate follow-up questions based on context"""
         questions = []
 
-        if len(context.query_analysis.extracted_drugs) == 1:
+        extracted_drugs = context.routing_info.get("extracted_drugs", [])
+        if len(extracted_drugs) == 1:
             questions.append("Are you currently taking any other medications?")
             questions.append("Do you have any known allergies to medications?")
 
-        if context.graph_results.get("foodInteractions"):
+        # Only suggest food interaction follow-up if user asked about food interactions
+        detected_intent = context.routing_info.get("intent", "unknown")
+        if (context.graph_results.get("foodInteractions") and 
+            detected_intent in ["food_interactions", "multi_aspect"]):
             questions.append(
                 "Would you like to know more about specific foods to avoid?"
             )
 
-        high_severity_warnings = [
-            w
-            for w in context.graph_results.get("warnings", [])
-            if w.get("severity") == "high"
-        ]
-        if high_severity_warnings:
-            questions.append(
-                "Have you discussed these potential interactions with your doctor?"
-            )
 
         return questions
 
@@ -403,7 +385,6 @@ Remember: Always specify the exact database table source for transparency."""
                 meta_data=json.dumps(
                     {
                         "reasoning": response.reasoning,
-                        "warnings": response.warnings,
                         "sources": response.sources,
                         "confidence": response.confidence,
                         "followUpQuestions": response.follow_up_questions,
@@ -476,6 +457,19 @@ Remember: Always specify the exact database table source for transparency."""
                 elif msg.role == "assistant":
                     conversation_summary.append(f"Assistant: {msg.content[:100]}...")
 
+                    # Extract drugs from assistant response content (look for <strong> tags with drug names)
+                    if msg.content:
+                        # Look for drug names in <strong> tags
+                        import re
+                        strong_matches = re.findall(r'<strong>([^<]+)</strong>', msg.content, re.IGNORECASE)
+                        for match in strong_matches:
+                            # Check if it looks like a drug name (4+ chars, not common words)
+                            match_clean = match.strip().lower()
+                            if (len(match_clean) >= 4 and 
+                                match_clean not in {"kidney", "chronic", "disease", "failure", "stage", "blood", "pressure", "disorders", "anxiety", "epilepsy"} and
+                                not match_clean in {"what", "this", "means", "recommendations"}):
+                                mentioned_drugs.add(match_clean)
+                    
                     # Extract metadata if available
                     if msg.meta_data:
                         try:
@@ -486,6 +480,7 @@ Remember: Always specify the exact database table source for transparency."""
                                 if (
                                     "drugs:" in reason.lower()
                                     or "identified drugs:" in reason.lower()
+                                    or "ai identified drugs:" in reason.lower()
                                 ):
                                     drugs_text = reason.split(":")[-1].strip()
                                     if drugs_text and drugs_text != "None":
@@ -514,7 +509,9 @@ Remember: Always specify the exact database table source for transparency."""
         patterns = [
             r"(?:taking|using|prescribed|on)\s+([A-Za-z][A-Za-z0-9\-]{3,})",
             r"([A-Za-z][A-Za-z0-9\-]{3,})\s+(?:drug|medication|medicine|tablet|pill)",
-            r"(?:about|for)\s+([A-Za-z][A-Za-z0-9\-]{4,})",
+            r"(?:about|for|regarding|when taking|avoid when taking)\s+([A-Za-z][A-Za-z0-9\-]{4,})",
+            r"when taking\s+([A-Za-z][A-Za-z0-9\-]{4,})",
+            r"([A-Za-z][A-Za-z0-9\-]{4,})\s+(?:food interactions|interactions)",
         ]
 
         drugs = set()

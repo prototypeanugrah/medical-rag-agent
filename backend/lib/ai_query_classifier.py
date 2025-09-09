@@ -142,6 +142,7 @@ class AIQueryClassifier:
             - If the query clearly asks for multiple types of information, choose "multi_aspect"
             - Provide a confidence score between 0.0 and 1.0
             - Extract any drug names mentioned in the query
+            - IMPORTANT: If the user refers to "this drug", "the medication", "it", or similar pronouns, include the contextual drugs provided in the extracted_drugs list
 
             Response format (JSON only):
             {
@@ -219,13 +220,131 @@ class AIQueryClassifier:
                 "extracted_drugs": extracted_drugs,
             }
 
+    def classify_query_intent_with_context(self, query: str, contextual_drugs: List[str]) -> Dict[str, any]:
+        """Use AI to classify the query intent with conversation context"""
+
+        system_prompt = """You are an expert medical query classifier. Your job is to analyze user queries about medications and classify them into specific intents.
+
+            Available Intent Categories:
+            1. product_availability - Questions about what products/medications are available, marketed, approved, or in development
+            2. food_interactions - Questions about food interactions, dietary restrictions, or what to eat/avoid with medications
+            3. drug_interactions - Questions about combining medications, drug-drug interactions, or taking multiple drugs together
+            4. side_effects - Questions about adverse effects, reactions, or symptoms caused by medications
+            5. contraindications - Questions about when NOT to take medications, dangerous conditions, or warnings
+            6. drug_information - General information about what a drug is, how it works, or its properties
+            7. treatment_indication - Questions about what conditions a drug treats or is used for
+            8. dosage_administration - Questions about dosage forms, strengths, routes of administration, how much to take, or how to take medications
+            9. general_medical - Vague medical questions that don't fit other categories
+            10. multi_aspect - Queries asking for comprehensive information covering multiple aspects
+
+            Instructions:
+            - Analyze the user query carefully
+            - Choose the SINGLE most appropriate intent category
+            - If the query clearly asks for multiple types of information, choose "multi_aspect"
+            - Provide a confidence score between 0.0 and 1.0
+            - Extract any drug names mentioned in the query
+            - IMPORTANT: If the user refers to "this drug", "the medication", "it", or similar pronouns without naming a specific drug, use the contextual drugs provided below
+
+            Response format (JSON only):
+            {
+                "intent": "intent_name",
+                "confidence": 0.85,
+                "reasoning": "Brief explanation of why this intent was chosen",
+                "extracted_drugs": ["drug1", "drug2"]
+            }
+        """
+
+        contextual_drugs_text = f"Drugs from conversation context: {', '.join(contextual_drugs) if contextual_drugs else 'None'}"
+
+        user_prompt = f"""Classify this medical query:
+
+            Query: "{query}"
+            
+            {contextual_drugs_text}
+
+            Analyze the query and respond with the classification in JSON format. If the user uses pronouns like "this drug", "the medication", "it" referring to a medication, include the contextual drugs in your extracted_drugs response.
+        """
+
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.1,  # Low temperature for consistent classification
+                max_tokens=200,
+            )
+
+            content = response.choices[0].message.content.strip()
+
+            # Parse JSON response
+            try:
+                result = json.loads(content)
+
+                # Validate the response
+                if "intent" not in result:
+                    raise ValueError("Missing 'intent' in response")
+
+                # Ensure confidence is within bounds
+                confidence = min(1.0, max(0.0, result.get("confidence", 0.5)))
+
+                # Validate intent
+                intent_name = result["intent"]
+                try:
+                    intent = QueryIntent(intent_name)
+                except ValueError:
+                    # Fallback to general_medical for invalid intents
+                    intent = QueryIntent.GENERAL_MEDICAL
+                    confidence = 0.3
+
+                # Merge extracted drugs with contextual drugs if user used pronouns
+                extracted_drugs = result.get("extracted_drugs", [])
+                query_lower = query.lower()
+                uses_pronouns = any(phrase in query_lower for phrase in [
+                    "this drug", "the drug", "the medication", "this medication", 
+                    "it", "this medicine", "the medicine", "for this", "about this"
+                ])
+                
+                if uses_pronouns and contextual_drugs and not extracted_drugs:
+                    extracted_drugs = contextual_drugs
+
+                return {
+                    "intent": intent.value,
+                    "confidence": confidence,
+                    "reasoning": result.get("reasoning", "AI classification with context"),
+                    "extracted_drugs": extracted_drugs,
+                }
+
+            except json.JSONDecodeError:
+                # Fallback if JSON parsing fails
+                return {
+                    "intent": QueryIntent.GENERAL_MEDICAL.value,
+                    "confidence": 0.3,
+                    "reasoning": "Failed to parse AI response",
+                    "extracted_drugs": contextual_drugs if contextual_drugs else [],
+                }
+
+        except Exception as e:
+            print(f"AI classification error: {e}")
+            # Fallback to regex-based extraction for drugs
+            extracted_drugs = self.extract_drugs(query)
+            if not extracted_drugs and contextual_drugs:
+                extracted_drugs = contextual_drugs
+            return {
+                "intent": QueryIntent.GENERAL_MEDICAL.value,
+                "confidence": 0.3,
+                "reasoning": f"AI service error: {str(e)}",
+                "extracted_drugs": extracted_drugs,
+            }
+
     def route_query(
         self, query: str, drugs: Optional[List[str]] = None
     ) -> Dict[str, any]:
         """Route query to appropriate data sources using AI classification"""
 
-        # Get AI classification
-        ai_result = self.classify_query_intent(query)
+        # Get AI classification with contextual drugs
+        ai_result = self.classify_query_intent_with_context(query, drugs or [])
 
         # Combine AI-extracted drugs with provided drugs
         all_drugs = list(set((drugs or []) + ai_result["extracted_drugs"]))

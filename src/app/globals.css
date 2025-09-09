@@ -115,3 +115,46 @@ input:focus, button:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: #a8a8a8;
 }
+
+/* Medical content HTML styling */
+.medical-content {
+  line-height: 1.7;
+}
+
+.medical-content p {
+  margin-bottom: 1rem;
+}
+
+.medical-content strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.medical-content em {
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.medical-content ul {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+  list-style-type: disc;
+}
+
+.medical-content li {
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+}
+
+.medical-content ul li::marker {
+  color: #3b82f6;
+}
+
+/* Dark mode adjustments for medical content */
+.dark .medical-content strong {
+  color: #f9fafb;
+}
+
+.dark .medical-content ul li::marker {
+  color: #60a5fa;
+}

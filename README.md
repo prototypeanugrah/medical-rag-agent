@@ -6,6 +6,8 @@ A production-ready Retrieval-Augmented Generation (RAG) system designed for medi
 
 This system transforms complex medical database information into clear, actionable insights for adults making important medication decisions. Unlike generic AI assistants that provide simple answers, this specialized system leverages 1.7M+ curated medical records to provide comprehensive, source-attributed responses with intelligent prioritization.
 
+**📊 Data Note**: Medical data files are not included in this repository due to size and licensing constraints. See [`DATA_INGESTION_GUIDE.md`](./DATA_INGESTION_GUIDE.md) for instructions on obtaining the required medical databases or generating sample data for development.
+
 ### Target Users
 - **Primary**: Adults prescribed new medications wanting full understanding
 - **Secondary**: People experiencing side effects seeking comprehensive analysis  
@@ -107,7 +109,7 @@ Follow these steps chronologically for a successful installation:
 ### Step 1: Clone and Navigate
 
 ```bash
-git clone <your-repo-url>
+git clone git@github.com:prototypeanugrah/medical-rag-agent.git
 cd medical-rag-agent
 ```
 
@@ -147,18 +149,6 @@ sudo -u postgres createdb medical_rag_pg
 sudo -u postgres psql medical_rag_pg -c "CREATE EXTENSION vector;"
 ```
 
-#### Option C: Docker (All Platforms)
-```bash
-# Run PostgreSQL with pgvector
-docker run -d \
-  --name medical-rag-postgres \
-  -e POSTGRES_DB=medical_rag_pg \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=password \
-  -p 5432:5432 \
-  pgvector/pgvector:pg14
-```
-
 ### Step 3: Environment Configuration
 
 ```bash
@@ -191,6 +181,10 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 # or
 pip install uv
 
+# Create and activate virtual env
+uv venv
+source .venv/bin/activate
+
 # Install Python dependencies with UV
 uv sync
 
@@ -218,10 +212,10 @@ npm list --depth=0
 
 ```bash
 # Test database connection
-uv run scripts/pg.py stats
+npm run pg:stats
 
 # Initialize PostgreSQL with tables and indexes
-uv run scripts/pg.py setup
+npm run pg:setup
 
 # Expected output:
 # ✅ PostgreSQL: Connected
@@ -232,9 +226,31 @@ uv run scripts/pg.py setup
 
 ### Step 7: Data Ingestion
 
+⚠️ **Important**: Medical data files are **NOT included** in this repository due to size and licensing constraints.
+
+**Option 1: Download from Google Drive (Recommended)**
 ```bash
-# Add all medical data (takes 5-10 minutes)
-uv run scripts/pg.py add --all
+# Show download instructions and open Google Drive folder
+npm run data:info
+npm run data:open
+
+# Google Drive folder: https://drive.google.com/drive/folders/17xzfvf0njVT7k9TDF6m2mCtDM4vMmV4F?usp=sharing
+# Download all files (~240MB total) to the project root directory
+```
+
+**Option 2: Development/Testing Sample Data**
+```bash
+# Generate sample data for testing (no download required)
+npm run data:sample
+```
+
+**After obtaining data files (any option)**:
+```bash
+# Verify all files are in place
+npm run data:check
+
+# Add all medical data to PostgreSQL (takes 5-10 minutes)
+npm run pg:add
 
 # Monitor progress - you should see:
 # ✅ Drug metadata: 17,430 records
@@ -245,13 +261,21 @@ uv run scripts/pg.py add --all
 # ✅ Stage descriptions: 7 records
 ```
 
+**📋 Quick Setup Reference**:
+```bash
+npm run data:guide    # Show complete setup guide
+npm run data:info     # Show download instructions  
+npm run data:open     # Open Google Drive in browser
+npm run data:check    # Verify downloaded files
+```
+
 ### Step 8: Vector Embeddings Generation
 
 ⚠️ **Important**: This step requires OpenAI API access and will incur costs (~$1.76)
 
 ```bash
 # Generate embeddings (takes 4-6 hours, ~$1.76 cost)
-uv run scripts/pg.py embeddings
+npm run pg:embeddings
 
 # The system will show:
 # 💰 Estimated cost: $1.76 USD
@@ -259,7 +283,7 @@ uv run scripts/pg.py embeddings
 # Proceed with embedding generation? (yes/no): yes
 ```
 
-**Alternative: Use NPM Scripts**
+**Complete Setup Commands**
 ```bash
 npm run pg:setup       # Database setup
 npm run pg:add         # Add all data  
@@ -271,7 +295,7 @@ npm run pg:validate    # Validate setup
 
 ```bash
 # Run comprehensive validation
-uv run scripts/pg.py validate
+npm run pg:validate
 
 # Should show all tests passing:
 # ✅ Database Connectivity: PASSED
@@ -337,18 +361,18 @@ curl http://localhost:8000/api/setup/
 ### Database Management
 ```bash
 # View database statistics
-uv run scripts/pg.py stats
+npm run pg:stats
 
-# Clear specific table
+# Clear specific table (use direct UV command)
 uv run scripts/pg.py clear drug_relations
 
-# Re-add specific data
+# Re-add specific data (use direct UV command)
 uv run scripts/pg.py add drug_relations
 
 # Complete reset (nuclear option)  
-uv run scripts/pg.py clear --all --force
-uv run scripts/pg.py add --all
-uv run scripts/pg.py embeddings
+npm run pg:clear
+npm run pg:add
+npm run pg:embeddings
 ```
 
 ### Development Utilities
@@ -370,9 +394,9 @@ npm start
 ### Testing & Validation
 ```bash
 # Quick validation
-uv run scripts/pg.py validate
+npm run pg:validate
 
-# Test specific functionality
+# Test specific functionality (use direct UV commands)
 uv run scripts/pg.py stats drug_relations
 uv run scripts/pg.py stats vector_embeddings
 ```
@@ -467,7 +491,7 @@ ORDER BY mean_time DESC
 LIMIT 10;"
 
 # Rebuild indexes if needed
-uv run scripts/pg.py setup  # Recreates indexes
+npm run pg:setup  # Recreates indexes
 ```
 
 ---

@@ -17,7 +17,12 @@
     "pg:clear": "uv run scripts/pg.py clear --all --force",
     "pg:add": "uv run scripts/pg.py add --all",
     "pg:embeddings": "uv run scripts/pg.py embeddings",
-    "pg:validate": "uv run scripts/pg.py validate"
+    "pg:validate": "uv run scripts/pg.py validate",
+    "data:info": "python scripts/download_data.py --info",
+    "data:open": "python scripts/download_data.py --open",
+    "data:check": "python scripts/download_data.py --check",
+    "data:guide": "python scripts/download_data.py --guide",
+    "data:sample": "python scripts/generate_sample_data.py --all --minimal"
   },
   "dependencies": {
     "next": "15.5.2",

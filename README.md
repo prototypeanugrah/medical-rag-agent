@@ -228,13 +228,11 @@ npm run pg:setup
 
 ⚠️ **Important**: Medical data files are **NOT included** in this repository due to size and licensing constraints.
 
-**Option 1: Download from Google Drive (Recommended)**
+**Option 1: Download from Google Drive (Recommended)** [Google Drive Link](https://drive.google.com/drive/folders/17xzfvf0njVT7k9TDF6m2mCtDM4vMmV4F?usp=sharing)
 ```bash
 # Show download instructions and open Google Drive folder
 npm run data:info
 npm run data:open
-
-# [Google Drive Link](https://drive.google.com/drive/folders/17xzfvf0njVT7k9TDF6m2mCtDM4vMmV4F?usp=sharing)
 # Download all files (~240MB total) to the project root directory
 ```
 
